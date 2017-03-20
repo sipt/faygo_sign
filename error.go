@@ -1,45 +1,53 @@
 package faygo_sign
 
-type baseError struct {
-	msg string
+type BaseError struct {
+	status int
+	msg    string
+	code   string
 }
 
-func (b *baseError) Error() string {
+func (b *BaseError) Error() string {
 	return b.msg
 }
 
+func (b *BaseError) Status() int {
+	return b.status
+}
+
 type MissingParamError struct {
-	baseError
+	BaseError
 }
 
 func NewMissingParamError(params string) *MissingParamError {
 	return &MissingParamError{
-		baseError: baseError{
-			msg: "Missing params:" + params,
+		BaseError: BaseError{
+			msg:    "Missing params:" + params,
+			status: 400,
 		},
 	}
 }
 
 type InvalidClientIDError struct {
-	baseError
+	BaseError
 }
 
 func NewInvalidClientIDError() *InvalidClientIDError {
 	return &InvalidClientIDError{
-		baseError: baseError{
+		BaseError: BaseError{
 			msg: "Invalid clientID",
 		},
 	}
 }
 
 type SignError struct {
-	baseError
+	BaseError
 }
 
 func NewSignError() *SignError {
 	return &SignError{
-		baseError: baseError{
-			msg: "Invalid sign",
+		BaseError: BaseError{
+			msg:    "Invalid sign",
+			status: 400,
 		},
 	}
 }
