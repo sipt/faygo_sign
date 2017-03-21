@@ -16,15 +16,18 @@ const ClientIDName = "clientID"
 //SignName sign name in params
 const SignName = "sign"
 
+//ClientData client data's name in session
+const ClientData = "client"
+
 //ErrorHandler default error handler
 var ErrorHandler = func(ctx *faygo.Context, status int, err error) {
-	ctx.String(status, `{"error":{"msg":"`+err.Error()+`"}}`)
+	ctx.JSON(status, `{"error":{"msg":`+err.Error()+`}}`)
 }
 
 //GetSignMiddleware 获取签名认证中间件
 func GetSignMiddleware(provider SignProvider) faygo.HandlerFunc {
 	return faygo.HandlerFunc(func(ctx *faygo.Context) error {
-		var params map[string]string
+		params := make(map[string]string)
 		//获取取有的参数转成map
 		p := ctx.QueryParamAll()
 		for k, vs := range p {
@@ -34,48 +37,55 @@ func GetSignMiddleware(provider SignProvider) faygo.HandlerFunc {
 		for k, vs := range p {
 			params[k] = vs[0]
 		}
-		ok, err := CheckSignMap(params, provider)
+		fmt.Println(params)
+		ok, clientData, err := CheckSignMap(params, provider)
 		if err != nil {
 			ErrorHandler(ctx, 400, err)
 			return err
 		}
 		if !ok {
-			ErrorHandler(ctx, 400, NewSignError())
+			err = NewSignError()
+			ErrorHandler(ctx, 400, err)
 			return err
 		}
+		ctx.SetData(ClientData, clientData)
 		return nil
 	})
 }
 
-func CheckSignMap(paramsMap map[string]string, provider SignProvider) (bool, error) {
+//CheckSignMap 验证sign的正确性
+func CheckSignMap(paramsMap map[string]string, provider SignProvider) (bool, interface{}, error) {
 	fmt.Println("start sign verity")
 	sign := paramsMap[SignName]
 	if sign == "" {
 		err := NewMissingParamError("sign")
-		return false, err
+		return false, nil, err
 	}
-	resultSign, err := SignMap(paramsMap, provider)
+	resultSign, clientData, err := SignMap(paramsMap, provider)
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
 	if resultSign != sign {
-		return false, nil
+		fmt.Println("request sign:", sign)
+		fmt.Println("result  sign:", resultSign)
+		fmt.Println("check sign false!")
+		return false, nil, nil
 	}
-	return true, nil
+	return true, clientData, nil
 }
 
 //SignMap 对Map进行签名
-func SignMap(paramsMap map[string]string, provider SignProvider) (string, error) {
+func SignMap(paramsMap map[string]string, provider SignProvider) (string, interface{}, error) {
 	clientID := paramsMap[ClientIDName]
 	var err error
 	if clientID == "" {
 		err = NewMissingParamError(ClientIDName)
-		return "", err
+		return "", nil, err
 	}
-	clientSecurity := provider.GetClientSecurity(clientID)
+	clientSecurity, clientData := provider.GetClientSecurity(clientID)
 	if clientSecurity == "" {
 		err = NewInvalidClientIDError()
-		return "", err
+		return "", nil, err
 	}
 	var params []string
 	params = append(params, "clinetID="+clientID)
@@ -86,7 +96,7 @@ func SignMap(paramsMap map[string]string, provider SignProvider) (string, error)
 	}
 	sort.Strings(params)
 	paramsStr := strings.Join(params, "&")
-	return paramsSign(paramsStr, clientSecurity), nil
+	return paramsSign(paramsStr, clientSecurity), clientData, nil
 }
 
 func isInclude(key string) bool {
