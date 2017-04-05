@@ -3,7 +3,6 @@ package faygo_sign
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"sort"
 	"strings"
 
@@ -37,7 +36,7 @@ func GetSignMiddleware(provider SignProvider) faygo.HandlerFunc {
 		for k, vs := range p {
 			params[k] = vs[0]
 		}
-		fmt.Println(params)
+		// fmt.Println(params)
 		ok, clientData, err := CheckSignMap(params, provider)
 		if err != nil {
 			ErrorHandler(ctx, 400, err)
@@ -55,7 +54,7 @@ func GetSignMiddleware(provider SignProvider) faygo.HandlerFunc {
 
 //CheckSignMap 验证sign的正确性
 func CheckSignMap(paramsMap map[string]string, provider SignProvider) (bool, interface{}, error) {
-	fmt.Println("start sign verity")
+	// fmt.Println("start sign verity")
 	sign := paramsMap[SignName]
 	if sign == "" {
 		err := NewMissingParamError("sign")
@@ -66,9 +65,9 @@ func CheckSignMap(paramsMap map[string]string, provider SignProvider) (bool, int
 		return false, nil, err
 	}
 	if resultSign != sign {
-		fmt.Println("request sign:", sign)
-		fmt.Println("result  sign:", resultSign)
-		fmt.Println("check sign false!")
+		// fmt.Println("request sign:", sign)
+		// fmt.Println("result  sign:", resultSign)
+		// fmt.Println("check sign false!")
 		return false, nil, nil
 	}
 	return true, clientData, nil
@@ -112,13 +111,13 @@ func isInclude(key string) bool {
 
 func paramsSign(params, key string) string {
 	params += "&key=" + key
-	fmt.Println("before sign:", params)
+	// fmt.Println("before sign:", params)
 	// md5 加密的第二种方法
 	hash := md5.New()
 	hash.Write([]byte(params))
 	cipherText2 := hash.Sum(nil)
 	hexText := make([]byte, 32)
 	hex.Encode(hexText, cipherText2)
-	fmt.Println("sign:", string(hexText))
+	// fmt.Println("sign:", string(hexText))
 	return string(hexText)
 }
